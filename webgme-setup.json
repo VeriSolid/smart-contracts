@@ -1,0 +1,49 @@
+{
+  "components": {
+    "seeds": {
+      "SC": {
+        "src": "src/seeds/SC"
+      }
+    },
+    "plugins": {
+      "SolidityCodeGenerator": {
+        "src": "src/plugins/SolidityCodeGenerator",
+        "test": "test/plugins/SolidityCodeGenerator"
+      },
+      "AddSecurityPatterns": {
+        "src": "src/plugins/AddSecurityPatterns",
+        "test": "test/plugins/AddSecurityPatterns"
+      }
+    },
+    "decorators": {
+      "ContractStateDcoratorDecorator": {
+        "src": "src/decorators/ContractStateDcoratorDecorator"
+      },
+      "ContractStateDecorator": {
+        "src": "src/decorators/ContractStateDecorator"
+      }
+    },
+    "visualizers": {
+      "SolidityCodeEditor": {
+        "src": "panels/SolidityCodeEditor/SolidityCodeEditorPanel",
+        "title": "SolidityCodeEditor",
+        "panel": "src/visualizers/panels/SolidityCodeEditor",
+        "secondary": false,
+        "widget": "src/visualizers/widgets/SolidityCodeEditor"
+      },
+      "ModelEditor": {
+        "src": "panels/ModelEditor/ModelEditorPanel",
+        "title": "ModelEditor",
+        "panel": "src/visualizers/panels/ModelEditor",
+        "secondary": false,
+        "widget": "src/visualizers/widgets/ModelEditor"
+      }
+    }
+  },
+  "dependencies": {
+    "seeds": {},
+    "plugins": {},
+    "decorators": {},
+    "visualizers": {}
+  }
+}
