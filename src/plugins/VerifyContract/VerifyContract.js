@@ -134,7 +134,7 @@ define([
         transitions = [],
         bipTransitionsToSMVNames = {},
         bipTransitionToSMVName,
-        propertiesSMV='',
+        propertiesSMV='', fairnessProperties='',
         transition, action,
         inINVAR = false, inModuleMain = false,
         currentConfig = this.getCurrentConfig(),
@@ -187,9 +187,7 @@ define([
 
     model = VerifyContract.prototype.conformance.call(self, model);
     model = VerifyContract.prototype.augmentModel.call(self, model);
-
     bipModel = ejs.render(ejsCache.contractType.complete, model);
-
     execSync = require('child_process').execSync;
     if (fs && path) {
           try {
@@ -226,22 +224,30 @@ define([
               }
             }
           }
-
           actionNamesToTransitionNames = VerifyContract.prototype.actionNamesToTransitions(model['transitions'], actionNamesToTransitionNames);
-
+          if (currentConfig['templateTwo'] != '' || currentConfig['templateThree']!=''){
+            fairnessProperties = 'FAIRNESS ( ';
+          }
           if (currentConfig['templateOne']!=''){
             propertiesSMV += VerifyContract.prototype.generateFirstTemplateProperties(currentConfig['templateOne'], model, bipTransitionsToSMVNames, actionNamesToTransitionNames);
           }
           if(currentConfig['templateTwo']!=''){
             propertiesSMV += VerifyContract.prototype.generateSecondTemplateProperties(currentConfig['templateTwo'], model, bipTransitionsToSMVNames, actionNamesToTransitionNames);
+            fairnessProperties += VerifyContract.prototype.generateSecondTemplateFairnessProperties(currentConfig['templateTwo'], model, bipTransitionsToSMVNames, actionNamesToTransitionNames);
           }
           if(currentConfig['templateThree']!=''){
             propertiesSMV += VerifyContract.prototype.generateThirdTemplateProperties(currentConfig['templateThree'], model, bipTransitionsToSMVNames, actionNamesToTransitionNames);
+            fairnessProperties += VerifyContract.prototype.generateThirdTemplateFairnessProperties(currentConfig['templateThree'], model, bipTransitionsToSMVNames, actionNamesToTransitionNames);
           }
           if(currentConfig['templateFour']!=''){
             propertiesSMV += VerifyContract.prototype.generateFourthTemplateProperties(currentConfig['templateFour'], model, bipTransitionsToSMVNames, actionNamesToTransitionNames);
           }
+          if (currentConfig['templateTwo'] != '' || currentConfig['templateThree']!=''){
+            fairnessProperties = fairnessProperties.slice(0,-1);
+            fairnessProperties += ');';
+          }
           fs.appendFileSync(path + '/' + model.name+ '.smv', propertiesSMV);
+          fs.appendFileSync(path + '/' + model.name+ '.smv', fairnessProperties);
 
           runNusmv = '.' + '/verificationTools/nuXmv -r ' + path + '/' + model.name+ '.smv >> ' + path + '/output.txt';
 
@@ -316,7 +322,7 @@ define([
 
     properties =VerifyContract.prototype.parseProperties.call(self, model, templateTwo);
     for (property of properties){
-      propertiesSMV += '-- A ( !(';
+      propertiesSMV += '-- A [ !(';
       for (clause of property[1]){
         propertiesSMV += bipTransitionsToSMVNames[actionNamesToTransitionNames[clause]] + "|"
       }
@@ -326,8 +332,8 @@ define([
           propertiesSMV += bipTransitionsToSMVNames[actionNamesToTransitionNames[clause]] + "|"
         }
         propertiesSMV = propertiesSMV.slice(0,-1);
-        propertiesSMV += '))\n';
-        propertiesSMV += 'CTLSPEC A ( !(';
+        propertiesSMV += ')]\n';
+        propertiesSMV += 'CTLSPEC A [ !(';
         for (clause of property[1]){
           propertiesSMV += bipTransitionsToSMVNames[actionNamesToTransitionNames[clause]] + "|"
         }
@@ -337,9 +343,25 @@ define([
             propertiesSMV += bipTransitionsToSMVNames[actionNamesToTransitionNames[clause]] + "|"
           }
           propertiesSMV = propertiesSMV.slice(0,-1);
-          propertiesSMV += '))\n\n';
+          propertiesSMV += ')]\n\n';
     }
     return propertiesSMV;
+  };
+
+  /* Get the properties specified by the user in Template Two */
+  VerifyContract.prototype.generateSecondTemplateFairnessProperties = function (templateTwo, model, bipTransitionsToSMVNames, actionNamesToTransitionNames){
+    var self = this,
+        properties = [],
+        property, clause,
+        fairnessProperties = '';
+
+    properties =VerifyContract.prototype.parseProperties.call(self, model, templateTwo);
+    for (property of properties){
+      for (clause of property[0]){
+        fairnessProperties += bipTransitionsToSMVNames[actionNamesToTransitionNames[clause]] + "|"
+      }
+    }
+    return fairnessProperties;
   };
 
   /* Get the properties specified by the user in Template Three */
@@ -367,7 +389,7 @@ define([
             }
             propertiesSMV = propertiesSMV.slice(0,-1);
             propertiesSMV += ')]\n';
-            propertiesSMV += 'CTLSPEC AG (';
+            propertiesSMV += 'CTLSPEC AG ((';
             for (clause of property[0]){
               propertiesSMV += bipTransitionsToSMVNames[actionNamesToTransitionNames[clause]] + "|"
             }
@@ -382,10 +404,25 @@ define([
                 propertiesSMV += bipTransitionsToSMVNames[actionNamesToTransitionNames[clause]] + "|"
               }
               propertiesSMV = propertiesSMV.slice(0,-1);
-              propertiesSMV += ')]\n\n';
+              propertiesSMV += ')])\n\n';
         }
 
     return propertiesSMV;
+  };
+
+  VerifyContract.prototype.generateThirdTemplateFairnessProperties = function (templateThree, model, bipTransitionsToSMVNames, actionNamesToTransitionNames){
+    var self = this,
+        properties = [],
+        property, clause,
+        fairnessProperties = '';
+
+    properties =VerifyContract.prototype.parseProperties.call(self, model, templateThree);
+    for (property of properties){
+      for (clause of property[2]){
+        fairnessProperties += bipTransitionsToSMVNames[actionNamesToTransitionNames[clause]] + "|"
+      }
+    }
+    return fairnessProperties;
   };
 
   /* Get the properties specified by the user in Template Four */
@@ -397,7 +434,7 @@ define([
 
     properties =VerifyContract.prototype.parseProperties.call(self, model, templateFour);
     for (property of properties){
-      propertiesSMV += '-- AG (()';
+      propertiesSMV += '-- AG ((';
       for (clause of property[1]){
         propertiesSMV += clause + "|"
       }
@@ -408,7 +445,7 @@ define([
         }
         propertiesSMV = propertiesSMV.slice(0,-1);
         propertiesSMV += '))\n';
-        propertiesSMV += 'CTLSPEC AG (()';
+        propertiesSMV += 'CTLSPEC AG ((';
         for (clause of property[1]){
           propertiesSMV += bipTransitionsToSMVNames[actionNamesToTransitionNames[clause]] + "|"
         }
@@ -428,7 +465,7 @@ define([
         transition;
     for (transition of transitions){
       if (transition['actionName'] != undefined){
-        actionNamesToTransitionNames[transition['actionName'].replace(/\s/g, "")] = transition['name'];
+        actionNamesToTransitionNames[transition['actionName']] = transition['name'];
       }
     }
     return actionNamesToTransitionNames;
@@ -446,12 +483,16 @@ define([
       for (clause of property.split("#")) {
         actions = []; // collect all actions for this clause
         for (action of clause.split("|")) {
-          actionName = action.replace(/\s/g, ""); // all comparisons will be whitespace-agnostic
+          actionName = action.replace(/\s/g,""); // all comparisons will be whitespace-agnostic
           transitions = [];
           for (transition of model["transitions"]) { // for each transition, check if it matches the action specification
-            //console.log(transition['actionName']);
-            if (transition['actionName'] != undefined && transition['actionName'].replace(/\s/g, "") === actionName) {
+            // if(transition['actionName']!= undefined){
+            //   console.log('1 '+transition['actionName'].replace(/[;\s]+/g,""));
+            // }
+            // console.log('2 '+actionName);
+            if (transition['actionName'] != undefined && transition['actionName'].replace(/[;\s]+/g,"") === actionName) {
               transitions.push(transition['actionName']);
+              //transitions.push(transition['actionName'].replace(/[;\s]+/g,""));
             }
           }
           if (transitions.length != 1) // action specification is ambiguous since multiple transitions match it
